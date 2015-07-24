@@ -1,6 +1,7 @@
 package com.divya.android.retrofit.popmovies.popmoviesretrofit;
 
 import android.content.Context;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
@@ -70,42 +71,60 @@ public class MainActivity extends ActionBarActivity {
 
     }
 
-          @Override
+    public class FetchMovieTask extends AsyncTask<Void, Void, Void> {
+        private final String LOG_TAG = FetchMovieTask.class.getSimpleName();
+
+        @Override
+        protected Void doInBackground(Void... params) {
+
+            final String SORT_PARAM = "sort_by";
+            final String API_KEY = "api_key";
+
+            String sortBy = "popularity.desc";
+            String api_key = "2fc475941d44b7da433d1f18e24e2551";
+
+            RestAdapter restAdapter = new RestAdapter.Builder()
+                    .setEndpoint(MOVIES_BASE_URL)
+                    .build();
+
+             GetMovieDataApi service = restAdapter.create(GetMovieDataApi.class);
+
+            gridView = (GridView) findViewById(R.id.gridview);
+
+            service.getMovieDataFromApi(sortBy, api_key, new Callback<Results>() {
+                @Override
+                public void success(Results results, Response response) {
+                    imageAdapter = new ImageAdapter(getApplicationContext(), results);
+
+                }
+
+                @Override
+                public void failure(RetrofitError error) {
+                    Log.d(TAG, "failure: " + error);
+                }
+            });
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+            Log.d(LOG_TAG, "imageAdapter: " +imageAdapter);
+            imageAdapter.notifyDataSetChanged();
+            gridView.setAdapter(imageAdapter);
+
+        }
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        FetchMovieTask movieTask =new FetchMovieTask();
+        movieTask.execute();
 
-        final String SORT_PARAM = "sort_by";
-        final String API_KEY = "api_key";
-
-        String sortBy = "popularity.desc";
-        String api_key = "2fc475941d44b7da433d1f18e24e2551";
-
-        RestAdapter restAdapter = new RestAdapter.Builder()
-                .setEndpoint(MOVIES_BASE_URL)
-                .build();
-
-        // Callback<Results> res = new Callback<Results>();
-        GetMovieDataApi service = restAdapter.create(GetMovieDataApi.class);
-
-        gridView = (GridView)findViewById(R.id.gridview);
-
-        service.getMovieDataFromApi(sortBy, api_key, new Callback<Results>() {
-            @Override
-            public void success(Results results, Response response) {
-
-                imageAdapter = new ImageAdapter(getApplicationContext(),results);
-                imageAdapter.notifyDataSetChanged();
-                gridView.setAdapter(imageAdapter);
-            }
-
-            @Override
-            public void failure(RetrofitError error) {
-                Log.d(TAG, "failure: " + error);
-            }
-        });
         Log.d(TAG, "onCreate(): Created");
 
     }
@@ -113,7 +132,6 @@ public class MainActivity extends ActionBarActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
 
